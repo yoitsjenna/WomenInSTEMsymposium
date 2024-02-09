@@ -1,0 +1,265 @@
+---
+title: "Introduction to R & RStudio"
+author: "Jenna MacKinnon"
+date: "2024-02-08"
+output: html_document
+---
+
+***I acknowledge that I am speaking today from Kjipuktuk, and want to pay my respects to the original caretakers of this land, the Mi'kmaq.***
+
+# 💃 **About Me**
+
+**Email:** jenna.mackinnon\@nrc-cnrc.gc.ca
+
+**Github:** yoitsjenna
+
+-   Graphing & Data Visualization
+
+-   Mapping
+
+-   Data wrangling & tidying
+
+-   Basic statistics
+
+-   Multivariate statistics
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+# 🖥️ The Basics
+
+## R Studio Layout
+
+-   Source -- Able to save and edit scripts continually 
+
+-   Console -- interactive area where R commands are executed one at a time; it provides immediate feedback, allowing you to see the results of your code in real-time.
+
+-   Environment -- current objects and data
+
+-   History -- keeps track of the commands you have previously executed in the R console, including both individual commands and entire scripts
+
+-   Packages -- list of some available packages and which ones are installed
+
+-   Plots -- where plots are "printed"; also included in the R markdown script
+
+-   Help -- help for functions, packages, and further learning
+
+## **Mathematical Operations & Variables**
+
+```{r}
+
+a <- 8 + 8
+a
+
+100 - 50 
+
+18 * 3
+
+72 / 12
+
+# The default to this function is the natural log (ln)
+log(2.718)
+
+# Rounds numbers with decimals -- default is a whole number
+round(3.14159)
+
+```
+
+# 🛠️ Install and Load Packages
+
+**Packages:** Extra functions, data, and/or compiled code designed to solve specific problems or perform certain tasks
+
+```{r}
+
+# install.packages("tidyverse")
+library(tidyverse)
+
+# install.packages("oce")
+library(oce)
+
+# install.packages("ocedata")
+library(ocedata)
+
+# install.packages("magrittr")
+library(magrittr)
+
+# https://cran.r-project.org/web/packages/spData/readme/README.html
+# install.packages("spData")
+library(spData)
+
+# install.packages("extrafont")
+library(extrafont)
+
+# install.packages("hrbrthemes")
+library(hrbrthemes)
+
+# install.packages("plotly")
+library(plotly)
+
+# install.packages("heatmaply")
+library(heatmaply)
+
+# install.packages("virdis")
+library(viridis)
+
+# install.packages("circlize")
+library(circlize)
+
+# install.packages("devtools", dependencies = TRUE)
+library(devtools)
+
+# install.packages("patchwork")
+library(patchwork)
+
+# devtools::install_github("mattflor/chorddiag")
+library(chorddiag) 
+
+#install.packages("gapminder")
+library(gapminder)
+
+```
+
+# 🔥 Creating a Heat Map
+
+Source: <https://www.data-to-viz.com/graph/heatmap.html>
+
+```{r}
+
+# Load data 
+data <- read.table("https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/multivariate.csv", header=T, sep=";")
+colnames(data) <- gsub("\\.", " ", colnames(data))
+
+# Select a few country
+data <- data %>% 
+  filter(Country %in% c("France", "Sweden", "Italy", "Spain", "England", "Portugal", "Greece", "Peru", "Chile", "Brazil", "Argentina", "Bolivia", "Venezuela", "Australia", "New Zealand", "Fiji", "China", "India", "Thailand", "Afghanistan", "Bangladesh", "United States of America", "Canada", "Burundi", "Angola", "Kenya", "Togo")) %>%
+  arrange(Country) %>%
+  mutate(Country = factor(Country, Country))
+
+# Matrix format
+mat <- data
+rownames(mat) <- mat[,1]
+mat <- mat %>% dplyr::select(-Country, -Group, -Continent)
+mat <- as.matrix(mat)
+
+p <- heatmaply(mat, 
+        dendrogram = "none",
+        xlab = "", ylab = "", 
+        main = "",
+        scale = "column",
+        margins = c(60,100,40,20),
+        grid_color = "white",
+        grid_width = 0.00001,
+        titleX = FALSE,
+        hide_colorbar = TRUE,
+        branches_lwd = 0.1,
+        label_names = c("Country", "Feature:", "Value"),
+        fontsize_row = 5, fontsize_col = 5,
+        labCol = colnames(mat),
+        labRow = rownames(mat),
+        heatmap_layers = theme(axis.line=element_blank())
+        )
+
+p
+
+```
+
+# ♾️ Create a Chord Diagram
+
+Source: <https://www.data-to-viz.com/graph/chord.html>
+
+```{r}
+
+# Load dataset from github
+data <- read.table("https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/13_AdjacencyDirectedWeighted.csv", header=TRUE)
+
+# short names
+colnames(data) <- c("Africa", "East Asia", "Europe", "Latin Ame.",   "North Ame.",   "Oceania", "South Asia", "South East Asia", "Soviet Union", "West.Asia")
+rownames(data) <- colnames(data)
+
+# I need a long format
+data_long <- data %>%
+  rownames_to_column %>%
+  gather(key = 'key', value = 'value', -rowname)
+
+# parameters
+circos.clear()
+circos.par(start.degree = 90, gap.degree = 4, track.margin = c(-0.1, 0.1), points.overflow.warning = FALSE)
+par(mar = rep(0, 4))
+
+# color palette
+mycolor <- viridis(10, alpha = 1, begin = 0, end = 1, option = "D")
+mycolor <- mycolor[sample(1:10)]
+
+# Base plot
+chordDiagram(
+  x = data_long, 
+  grid.col = mycolor,
+  transparency = 0.25,
+  directional = 1,
+  direction.type = c("arrows", "diffHeight"), 
+  diffHeight  = -0.04,
+  annotationTrack = "grid", 
+  annotationTrackHeight = c(0.05, 0.1),
+  link.arr.type = "big.arrow", 
+  link.sort = TRUE, 
+  link.largest.ontop = TRUE)
+
+# Add text and axis
+circos.trackPlotRegion(
+  track.index = 1, 
+  bg.border = NA, 
+  panel.fun = function(x, y) {
+    
+    xlim = get.cell.meta.data("xlim")
+    sector.index = get.cell.meta.data("sector.index")
+    
+    # Add names to the sector. 
+    circos.text(
+      x = mean(xlim), 
+      y = 3.2, 
+      labels = sector.index, 
+      facing = "bending", 
+      cex = 0.8
+      )
+
+    # Add graduation on axis
+    circos.axis(
+      h = "top", 
+      major.at = seq(from = 0, to = xlim[2], by = ifelse(test = xlim[2]>10, yes = 2, no = 1)), 
+      minor.ticks = 1, 
+      major.tick.percentage = 0.5,
+      labels.niceFacing = FALSE)
+  }
+)
+```
+
+```{r}
+```
+
+# 📈 Create an Interactive Bubble Plot
+
+Source: <https://r-graph-gallery.com/interactive-charts.html>
+
+```{r}
+
+p <- gapminder %>%
+  filter(year==1977) %>%
+  ggplot( aes(gdpPercap, lifeExp, size = pop, color=continent)) +
+  geom_point() +
+  theme_bw()
+
+ggplotly(p)
+```
+
+# 📚 Resources
+
+-   [The R Graph Gallery -- Help and inspiration for R charts (r-graph-gallery.com](https://r-graph-gallery.com/index.html))
+-   <http://www.cookbook-r.com/>
+-   [LinkedIn Learning with Lynda: Online Training Courses for Creative, Technology, Business Skills](https://www.linkedin.com/learning/?trk=learning-serp_nav-header-logo&upsellOrderOrigin=default_guest_learning)
+    -   Free access through some library memberships
+-   **Tidyverse**
+    -   <https://www.youtube.com/watch?v=8NnKhpG4JHA>
+-   **R Cheatsheets**
+    -   <https://www.rstudio.com/resources/cheatsheets/>
